@@ -1,4 +1,4 @@
-# 「讀取工廠溫度」— Modbus MCP
+# 「讀取工廠溫度」-- Modbus MCP
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
@@ -7,22 +7,22 @@
 
 [English](README.md)
 
-Modbus TCP 設備的 MCP Server。用 YAML 定義設備描述檔，讓 AI Agent 用名稱讀寫 PLC 寄存器 — 不需要知道 raw address。
+說真的，沒有人想記住 register `40001` 是溫度感測器。人生苦短，Modbus 位址太多。這是一個 Modbus TCP 設備的 MCP Server -- 用 YAML 定義設備描述檔，讓 AI Agent 用名稱讀寫 PLC 寄存器，像個文明人一樣操作。
 
-內建 **Modbus TCP 模擬器**，不需要真實硬體即可完整測試。
+內建 **Modbus TCP 模擬器**，因為我們都知道你桌上沒有 PLC。（如果有的話，記得擦灰塵。）
 
 ---
 
 ## 為什麼做這個
 
-目前市面上的 Modbus MCP Server 共通的短板：
+我一直在找現成的 Modbus MCP Server，然後一直找到同樣的四個遺憾：
 
-1. **無語義化寄存器映射** — AI 必須知道 raw address（如 40001），無法用「讀取溫度」操作
-2. **無資料型別轉換** — 回傳 raw uint16，不處理 float32 / int32 等多寄存器型別
-3. **無內建模擬器** — 測試需要外部硬體或第三方模擬器
-4. **無設備描述檔** — 無法預先設定設備連線資訊與寄存器映射
+1. **無語義化寄存器映射** -- AI 必須知道 raw address（如 40001），你跟它說「讀取溫度」它只會跟你大眼瞪小眼
+2. **無資料型別轉換** -- 全部回傳 raw uint16，float32 大概太高級了不配被支援
+3. **無內建模擬器** -- 想測試？去買硬體吧。或是拜託同事借你。或是對著天花板發呆。
+4. **無設備描述檔** -- 無法預先設定連線資訊跟寄存器映射，所以你得一直重複輸入 host/port/slave_id，彷彿回到了 1998 年
 
-本專案解決以上全部問題。
+所以我做了一件不太理性的事：自己把四個都修了。
 
 ---
 
@@ -40,13 +40,13 @@ Modbus TCP 設備的 MCP Server。用 YAML 定義設備描述檔，讓 AI Agent 
 
 ## 功能
 
-- **自然語言控制** —「讀取工廠溫度」直接可用
-- **YAML 設備描述檔** — 寄存器名稱映射到位址、資料型別、單位、縮放比例
-- **8 個 MCP 工具** — 5 個 profile 模式 + 3 個 raw 模式
-- **自動資料型別轉換** — float32, int32, uint16, bool，支援 byte order 和 scale
-- **內建 Modbus TCP 模擬器** — 正弦波溫度、隨機濕度/壓力、可寫入的線圈
-- **Docker 一鍵啟動** — `docker compose up -d` 同時啟動模擬器和 MCP Server
-- **OpenClaw Skill** — 本地 LLM agent 的 wrapper script
+- **自然語言控制** --「讀取工廠溫度」直接可用，不需要把位址對照表貼在螢幕旁邊
+- **YAML 設備描述檔** -- 寄存器名稱映射到位址、資料型別、單位、縮放比例。終於，看得懂的設定檔。
+- **8 個 MCP 工具** -- 5 個 profile 模式 + 3 個 raw 模式，想當駭客的時候可以切換
+- **自動資料型別轉換** -- float32, int32, uint16, bool，支援 byte order 和 scale，因為凌晨兩點在腦中做位元運算不是什麼值得炫耀的技能
+- **內建 Modbus TCP 模擬器** -- 正弦波溫度、隨機濕度/壓力、可寫入的線圈。你的虛擬工廠運作良好。
+- **Docker 一鍵啟動** -- `docker compose up -d`，兩個容器，零藉口
+- **OpenClaw Skill** -- 本地 LLM agent 的 wrapper script，給偏好命令列生活方式的人
 
 ---
 
@@ -57,6 +57,8 @@ Modbus TCP 設備的 MCP Server。用 YAML 定義設備描述檔，讓 AI Agent 
 ---
 
 ## 快速開始
+
+三個終端機，五分鐘，零焊接。
 
 ### 1. 下載安裝
 
@@ -94,6 +96,8 @@ mcporter call modbus.device_status device=factory_sensor
 
 ### 或用 Docker Compose
 
+給「我不想開三個終端機」的朋友們（完全可以理解）：
+
 ```bash
 docker compose up -d
 # 模擬器在 :5020，MCP Server 在 :8765
@@ -103,7 +107,7 @@ docker compose up -d
 
 ## 設備描述檔（YAML）
 
-在 `devices.yaml` 定義你的 Modbus 設備：
+精華在這裡。好吧，說「精華」有點浮誇 -- 就是 YAML 而已。但總比背十六進位位址好。在 `devices.yaml` 定義你的 Modbus 設備：
 
 ```yaml
 devices:
@@ -153,15 +157,19 @@ devices:
 
 ### Profile 模式（主要）
 
+使用者友善的部分。這個專案存在的理由。
+
 | Tool | 說明 |
 |------|------|
 | `list_devices` | 列出所有已配置的設備 |
 | `list_registers` | 列出設備所有寄存器及 metadata |
-| `read_device` | 讀取命名寄存器 — 回傳轉換後的值 + 單位 |
+| `read_device` | 讀取命名寄存器 -- 回傳轉換後的值 + 單位 |
 | `write_device` | 寫入命名寄存器 |
 | `device_status` | 檢查設備是否在線 |
 
 ### Raw 模式（進階）
+
+當你想繞過所有漂亮的抽象層，直接跟寄存器赤裸相見的時候用這個。
 
 | Tool | 說明 |
 |------|------|
@@ -173,7 +181,7 @@ devices:
 
 ## 內建模擬器
 
-基於 pymodbus 的 Modbus TCP server，具有動態數據。不需要真實硬體。
+一個基於 pymodbus 的 Modbus TCP server，假裝自己是一座工廠。數據是假的，但協議是真的。不需要硬體 -- 你的筆電現在就是工廠了。
 
 | 寄存器 | Address | FC | Type | 行為 |
 |--------|---------|-----|------|------|
@@ -218,6 +226,8 @@ kc_modbus_mcp/
 
 ## 環境變數
 
+預設值都幫你設好了，因為沒有人應該要先設定一堆東西才能確認它能不能跑。
+
 | 變數 | 預設值 | 說明 |
 |------|--------|------|
 | `MODBUS_PROFILE` | `devices.yaml` | 設備描述檔路徑 |
@@ -230,7 +240,7 @@ kc_modbus_mcp/
 
 ## OpenClaw 整合
 
-OpenClaw / 本地 LLM agent 可用 wrapper script 簡化指令：
+OpenClaw / 本地 LLM agent 可以用 wrapper script，把囉嗦的 MCP 呼叫變成你的手指不會抗議的長度：
 
 ```bash
 modbus list
@@ -276,6 +286,8 @@ npx @modelcontextprotocol/inspector http://localhost:8765/mcp
 
 ## TODO
 
+我一定會做的。遲早。大概。
+
 - [ ] 多設備連線池
 - [ ] Polling 模式 + 可配置快取間隔
 - [ ] 變化偵測（值變動時通知）
@@ -283,4 +295,3 @@ npx @modelcontextprotocol/inspector http://localhost:8765/mcp
 - [ ] Web UI 編輯設備描述檔
 
 ---
-

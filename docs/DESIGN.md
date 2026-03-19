@@ -1,6 +1,6 @@
-# kc_modbus_mcp — Design Document
+# kc_modbus_mcp -- Design Document
 
-> **English summary:** MCP Server for Modbus TCP devices. Lets LLM agents read/write PLC registers by name through YAML-based device profiles. Includes a built-in simulator for testing without real hardware. This document covers architecture, YAML profile schema, MCP tool definitions, data flow, simulator design, and Docker deployment.
+> **English summary:** MCP Server for Modbus TCP devices. Lets LLM agents read/write PLC registers by name through YAML-based device profiles, because nobody should have to whisper raw hex addresses at an AI. Includes a built-in simulator for testing without real hardware (or friends who own PLCs). This document covers architecture, YAML profile schema, MCP tool definitions, data flow, simulator design, and Docker deployment.
 
 ---
 
@@ -8,15 +8,15 @@
 
 ## 概觀
 
-讓 LLM Agent 透過 MCP 協議與 Modbus TCP 設備互動。使用者用 YAML 定義設備的寄存器映射（device profile），AI agent 用名稱讀寫寄存器，不需要知道 raw address。
+讓 LLM Agent 透過 MCP 協議跟 Modbus TCP 設備好好溝通。使用者用 YAML 定義設備的寄存器映射（device profile），AI agent 用名稱讀寫寄存器 -- 不需要背 raw address，人生已經夠苦了。
 
-目前市面上的 Modbus MCP Server 共通的短板：
-1. **無語義化寄存器映射** — AI 必須知道 raw address（如 40001），無法用「讀取溫度」操作
-2. **無資料型別轉換** — 回傳 raw uint16，不處理 float32 / int32 等多寄存器型別
-3. **無內建模擬器** — 測試需要外部硬體或第三方模擬器
-4. **無設備描述檔** — 無法預先設定設備連線資訊與寄存器映射
+我一直在看市面上的 Modbus MCP Server，發現大家有著驚人一致的短板：
+1. **無語義化寄存器映射** -- AI 必須知道 raw address（如 40001），你跟它說「讀取溫度」它只會一臉茫然
+2. **無資料型別轉換** -- 回傳 raw uint16，float32 大概被認為太奢侈了
+3. **無內建模擬器** -- 想測試就要搞硬體，門檻直接拉到天花板
+4. **無設備描述檔** -- 無法預先設定連線資訊跟寄存器映射，每次操作都像在重新發明輪子
 
-kc_modbus_mcp 解決以上全部問題。
+kc_modbus_mcp 把以上全部修了。是的，我就是那個不嫌事多的人。
 
 ---
 
@@ -35,7 +35,7 @@ LLM（Claude / OpenClaw / etc.）
 
 ## 設備描述檔（Device Profile）
 
-以 YAML 定義，支援註解。放在 `devices.yaml`：
+用 YAML 定義，支援註解。放在 `devices.yaml`。看起來像設定檔，用起來像超能力（好吧，也許只是普通能力，但比背位址好多了）：
 
 ```yaml
 devices:
@@ -81,6 +81,8 @@ devices:
 
 ### 支援的 Function Code
 
+Modbus 的 function code 就像菜單上的編號，你不用全背，但知道有哪些選項總是好的：
+
 | Code | 名稱 | 存取 |
 |------|------|------|
 | 1 | Read Coils | 讀 |
@@ -98,15 +100,19 @@ devices:
 
 ### Profile 模式（主要）
 
+給正常人用的工具。這個專案存在的理由。
+
 | Tool | 參數 | 說明 |
 |------|------|------|
-| `list_devices` | — | 列出所有已定義的設備 |
+| `list_devices` | -- | 列出所有已定義的設備 |
 | `list_registers` | device | 列出設備所有寄存器及 metadata |
 | `read_device` | device, register | 讀取命名寄存器，回傳轉換後的值 + 單位 |
 | `write_device` | device, register, value | 寫入命名寄存器 |
 | `device_status` | device | 測試連線，回報 online/offline |
 
 ### Raw 模式（進階）
+
+給喜歡直接面對寄存器、不需要任何抽象層保護的勇者。我不評判。
 
 | Tool | 參數 | 說明 |
 |------|------|------|
@@ -117,6 +123,8 @@ devices:
 ---
 
 ## 資料流
+
+看看你的一句「讀取溫度」在背後經歷了什麼。別說我沒為你負重前行。
 
 ### 讀取（Profile 模式）
 
@@ -146,14 +154,14 @@ LLM: write_device("factory_sensor", "motor_speed", 1500)
 
 ## 模擬器
 
-內建 pymodbus Modbus TCP server，git clone 後即可自測，不需要真實硬體。
+內建 pymodbus Modbus TCP server，git clone 下來就能自己玩，不需要真實硬體。你的筆電終於有了工廠夢。
 
 ### 功能
-- 預設 port 5020（避免與真實設備 502 衝突）
-- 預載與 `devices.yaml` 範例對應的寄存器
-- 模擬數據變化：溫度正弦波、濕度隨機波動、馬達/幫浦保持寫入值
+- 預設 port 5020（避免跟真實設備的 502 打架）
+- 預載跟 `devices.yaml` 範例對應的寄存器
+- 模擬數據變化：溫度用正弦波假裝自然、濕度靠隨機數搖擺、馬達和幫浦乖乖保持你寫入的值
 - 獨立腳本：`python simulator.py`
-- 整合在 Docker Compose 中
+- 當然也整合在 Docker Compose 裡面
 
 ### 模擬寄存器表
 
@@ -170,7 +178,7 @@ LLM: write_device("factory_sensor", "motor_speed", 1500)
 
 ## OpenClaw Skill Wrapper
 
-提供 OpenClaw agent 的 skill 封裝，簡化 LLM 指令：
+提供 OpenClaw agent 的 skill 封裝，因為沒有人想打那麼長的指令：
 
 ```
 modbus list                         → list_devices
@@ -214,6 +222,8 @@ kc_modbus_mcp/
 ---
 
 ## Docker Compose
+
+兩個容器，一個指令，零煩惱（大概）：
 
 ```yaml
 services:
@@ -261,6 +271,8 @@ python server.py
 ---
 
 ## 技術棧
+
+沒有什麼花俏的框架，就是幾個靠譜的工具組在一起：
 
 - Python 3.12+
 - FastMCP（MCP SDK）

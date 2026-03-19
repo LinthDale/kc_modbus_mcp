@@ -1,4 +1,4 @@
-# "Read the factory temperature" — Modbus MCP
+# "Read the factory temperature" -- Modbus MCP
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://python.org)
@@ -7,22 +7,22 @@
 
 [正體中文](README_zh.md)
 
-MCP Server for Modbus TCP devices. Define device profiles in YAML, then let AI agents read/write PLC registers by name — not by raw address.
+Look, nobody wants to memorize that register `40001` is the temperature sensor. Life is too short and Modbus addresses are too many. This is an MCP Server for Modbus TCP devices -- you define device profiles in YAML, and then AI agents can read/write PLC registers by name like civilized beings.
 
-Includes a **built-in simulator** so you can test everything without real hardware.
+It also ships with a **built-in simulator**, because we all know you don't have a PLC sitting on your desk. (And if you do, please dust it off.)
 
 ---
 
 ## Why This Exists
 
-Existing MCP servers for Modbus share common limitations:
+I kept looking at existing MCP servers for Modbus and kept finding the same four disappointments:
 
-1. **No semantic register mapping** — AI must know raw addresses like `40001`, can't say "read temperature"
-2. **No data type conversion** — returns raw uint16; doesn't handle float32/int32 across register pairs
-3. **No built-in simulator** — requires external hardware or third-party tools to test
-4. **No device profiles** — no way to pre-configure connection details and register maps
+1. **No semantic register mapping** -- the AI has to know raw addresses like `40001`. Asking it to "read temperature" gets you a blank stare.
+2. **No data type conversion** -- everything comes back as raw uint16, because apparently float32 is too fancy.
+3. **No built-in simulator** -- want to test? Go buy hardware. Or beg a colleague. Or stare at the ceiling.
+4. **No device profiles** -- no way to pre-configure connection details and register maps, so you get to type the same host/port/slave_id over and over like it's 1998.
 
-This project solves all four.
+So I did the unreasonable thing and fixed all four myself.
 
 ---
 
@@ -40,13 +40,13 @@ User (CLI / Chat / OpenClaw)
 
 ## Features
 
-- **Natural language control** — "read the factory temperature" just works
-- **YAML device profiles** — map register names to addresses, data types, units, and scaling
-- **8 MCP tools** — 5 profile-based + 3 raw mode for advanced use
-- **Auto data type conversion** — float32, int32, uint16, bool — with byte order and scale support
-- **Built-in Modbus TCP simulator** — sine-wave temperature, random humidity/pressure, writable coils
-- **Docker-ready** — `docker compose up -d` starts simulator + MCP server
-- **OpenClaw skill** — wrapper script for local LLM agents
+- **Natural language control** -- "read the factory temperature" just works. No address lookup tables taped to your monitor.
+- **YAML device profiles** -- map register names to addresses, data types, units, and scaling. Finally, configuration that reads like English.
+- **8 MCP tools** -- 5 profile-based + 3 raw mode for when you need to go full hacker.
+- **Auto data type conversion** -- float32, int32, uint16, bool -- with byte order and scale support, because doing bit math in your head at 2 AM is not a personality trait.
+- **Built-in Modbus TCP simulator** -- sine-wave temperature, random humidity/pressure, writable coils. Your imaginary factory is doing great.
+- **Docker-ready** -- `docker compose up -d` and you're in business. Two containers, zero excuses.
+- **OpenClaw skill** -- wrapper script for local LLM agents who prefer the command line lifestyle.
 
 ---
 
@@ -57,6 +57,8 @@ User (CLI / Chat / OpenClaw)
 ---
 
 ## Quick Start
+
+Three terminals, five minutes, zero soldering required.
 
 ### 1. Clone and install
 
@@ -94,6 +96,8 @@ mcporter call modbus.device_status device=factory_sensor
 
 ### Or use Docker Compose
 
+For the "I don't want to open three terminals" crowd (understandable):
+
 ```bash
 docker compose up -d
 # Simulator on :5020, MCP server on :8765
@@ -103,7 +107,7 @@ docker compose up -d
 
 ## Device Profile (YAML)
 
-Define your Modbus devices in `devices.yaml`:
+This is where the magic happens. Well, "magic" is generous -- it's just YAML. But it beats memorizing hex addresses. Define your Modbus devices in `devices.yaml`:
 
 ```yaml
 devices:
@@ -162,15 +166,19 @@ devices:
 
 ### Profile Mode (primary)
 
+The user-friendly stuff. The reason this project exists.
+
 | Tool | Description |
 |------|-------------|
 | `list_devices` | List all configured devices |
 | `list_registers` | List all registers of a device with metadata |
-| `read_device` | Read a named register — returns converted value + unit |
+| `read_device` | Read a named register -- returns converted value + unit |
 | `write_device` | Write a value to a named register |
 | `device_status` | Check if a device is online |
 
 ### Raw Mode (advanced)
+
+For when you need to bypass all that nice abstraction and talk to registers like it's a bare metal Tuesday.
 
 | Tool | Description |
 |------|-------------|
@@ -182,7 +190,7 @@ devices:
 
 ## Built-in Simulator
 
-The simulator is a pymodbus-based Modbus TCP server with dynamic data. No real hardware needed.
+A pymodbus-based Modbus TCP server that pretends to be a factory. The data is fake but the protocol is real. No hardware needed -- your laptop is the factory now.
 
 | Register | Address | FC | Type | Behavior |
 |----------|---------|-----|------|----------|
@@ -221,6 +229,8 @@ kc_modbus_mcp/
 
 ## Environment Variables
 
+Sensible defaults included, because nobody should have to configure things just to see if they work.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MODBUS_PROFILE` | `devices.yaml` | Path to device profile YAML |
@@ -233,7 +243,7 @@ kc_modbus_mcp/
 
 ## OpenClaw Integration
 
-For OpenClaw / local LLM agents, a wrapper script simplifies commands:
+For OpenClaw / local LLM agents, a wrapper script turns verbose MCP calls into something you can actually type without getting carpal tunnel:
 
 ```bash
 modbus list
@@ -248,6 +258,8 @@ See [`openclaw-skill/SKILL.md`](openclaw-skill/SKILL.md) for details.
 
 ## TODO
 
+Things I will definitely get to. Eventually. Probably.
+
 - [ ] Multi-device connection pooling
 - [ ] Polling mode with configurable cache interval
 - [ ] Change detection (notify on value changes)
@@ -255,4 +267,3 @@ See [`openclaw-skill/SKILL.md`](openclaw-skill/SKILL.md) for details.
 - [ ] Web UI for device profile editing
 
 ---
-
