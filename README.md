@@ -50,6 +50,12 @@ User (CLI / Chat / OpenClaw)
 
 ---
 
+## Demo
+
+![AI agent reading Modbus device registers](docs/images/demo-snapshot.png)
+
+---
+
 ## Quick Start
 
 ### 1. Clone and install

@@ -50,6 +50,12 @@ Modbus TCP 設備的 MCP Server。用 YAML 定義設備描述檔，讓 AI Agent 
 
 ---
 
+## 展示
+
+![AI agent 讀取 Modbus 設備寄存器](docs/images/demo-snapshot.png)
+
+---
+
 ## 快速開始
 
 ### 1. 下載安裝
