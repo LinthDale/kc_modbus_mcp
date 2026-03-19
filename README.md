@@ -202,6 +202,7 @@ kc_modbus_mcp/
 │   ├── converter.py        # Data type conversion (raw ↔ engineering value)
 │   └── tools.py            # MCP tool definitions
 ├── openclaw-skill/         # OpenClaw skill wrapper
+├── tests/                  # Automated tests
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml

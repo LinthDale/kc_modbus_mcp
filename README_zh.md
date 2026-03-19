@@ -198,8 +198,7 @@ kc_modbus_mcp/
 │   ├── _meta.json
 │   └── scripts/
 │       └── modbus          # CLI wrapper script
-├── docs/
-│   └── setup-guide.md
+├── tests/                  # 自動化測試
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml

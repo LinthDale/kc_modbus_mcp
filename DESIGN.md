@@ -1,6 +1,6 @@
-# kc_mcp_modbus — Design Document
+# kc_modbus_mcp — Design Document
 
-> MCP Server for Modbus TCP devices. Lets LLM agents read/write PLC registers by name through YAML-based device profiles. Includes a built-in simulator for testing without real hardware.
+> **English summary:** MCP Server for Modbus TCP devices. Lets LLM agents read/write PLC registers by name through YAML-based device profiles. Includes a built-in simulator for testing without real hardware. This document covers architecture, YAML profile schema, MCP tool definitions, data flow, simulator design, and Docker deployment.
 
 ---
 
@@ -16,7 +16,7 @@
 3. **無內建模擬器** — 測試需要外部硬體或第三方模擬器
 4. **無設備描述檔** — 無法預先設定設備連線資訊與寄存器映射
 
-kc_mcp_modbus 解決以上全部問題。
+kc_modbus_mcp 解決以上全部問題。
 
 ---
 
@@ -25,7 +25,7 @@ kc_mcp_modbus 解決以上全部問題。
 ```
 LLM（Claude / OpenClaw / etc.）
   → MCP Protocol（stdio）
-  → kc_mcp_modbus（FastMCP Server）
+  → kc_modbus_mcp（FastMCP Server）
     → Profile Mgr（YAML 設備描述檔）
     → pymodbus（async Modbus TCP client）
   → Modbus TCP 設備 / 內建模擬器
@@ -184,7 +184,7 @@ modbus write <device> <reg> <val>   → write_device
 ## 專案結構
 
 ```
-kc_mcp_modbus/
+kc_modbus_mcp/
 ├── server.py               # MCP Server 進入點
 ├── simulator.py            # 內建 Modbus TCP 模擬器
 ├── devices.yaml            # 設備描述檔範例
@@ -199,8 +199,7 @@ kc_mcp_modbus/
 │   ├── _meta.json
 │   └── scripts/
 │       └── modbus          # CLI wrapper script
-├── docs/
-│   └── setup-guide.md      # 設定教學
+├── tests/                  # 自動化測試
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml
@@ -241,8 +240,8 @@ services:
 
 ```bash
 # 1. Clone
-git clone https://github.com/KerberosClaw/kc_mcp_modbus.git
-cd kc_mcp_modbus
+git clone https://github.com/KerberosClaw/kc_modbus_mcp.git
+cd kc_modbus_mcp
 
 # 2. 啟動模擬器 + MCP Server
 docker compose up -d
