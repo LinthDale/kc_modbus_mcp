@@ -56,6 +56,8 @@ User (CLI / Chat / OpenClaw)
 
 ---
 
+> **Security Notice:** This is a POC/development project designed for trusted LAN environments. The MCP server does not implement authentication. Raw mode allows read/write access to any reachable Modbus device. Do not expose service ports to the public internet without additional security measures.
+
 ## Quick Start
 
 Three terminals, five minutes, zero soldering required.
