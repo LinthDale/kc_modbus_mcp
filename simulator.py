@@ -57,10 +57,10 @@ def build_datastore() -> ModbusDeviceContext:
     di_values = [False] * 10
 
     return ModbusDeviceContext(
-        di=ModbusSequentialDataBlock(0, di_values),
-        co=ModbusSequentialDataBlock(0, coil_values),
-        hr=ModbusSequentialDataBlock(0, hr_values),
-        ir=ModbusSequentialDataBlock(0, ir_values),
+        di=ModbusSequentialDataBlock(1, di_values),
+        co=ModbusSequentialDataBlock(1, coil_values),
+        hr=ModbusSequentialDataBlock(1, hr_values),
+        ir=ModbusSequentialDataBlock(1, ir_values),
     )
 
 
